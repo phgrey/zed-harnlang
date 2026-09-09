@@ -6,7 +6,7 @@ version = "0.0.1"
 schema_version = 1
 authors = ["Sergey Semenov <phgrey@gmail.com>"]
 description = "Language server extension for Harn."
-repository = "https://github.com/phgrey/zed-harnlang-lsp"
+repository = "https://github.com/phgrey/zed-harnlang"
 
 [language_servers.harnlang]
 name = "Harn LSP"
