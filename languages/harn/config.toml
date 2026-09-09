@@ -1,7 +1,7 @@
 name = "Harn"
 grammar = "harn"
 path_suffixes = ["harn"]
-line_comments = ["# "]
+line_comments = ["// "]
 
 brackets = [
     { start = "{", end = "}", close = true, newline = true },
