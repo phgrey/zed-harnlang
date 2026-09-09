@@ -1,0 +1,13 @@
+id = "harnlang"
+name = "Harn Language"
+version = "0.0.1"
+schema_version = 1
+authors = ["Sergey Semenov <phgrey@gmail.com>"]
+description = "Harn language syntax and grammar support for Zed."
+repository = "https://github.com/phgrey/zed-harnlang"
+path = "tree-sitter"
+
+[grammars.harn]
+repository = "https://github.com/burin-labs/harn"
+path = "tree-sitter-harn"
+commit = "fc5e9009c7b95b18d23d64c457d6c8f924e10515"
