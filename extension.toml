@@ -1,14 +1,10 @@
 id = "harnlang"
 name = "Harn Language"
-version = "0.1.0"
+version = "0.1.1"
 schema_version = 1
 authors = ["Sergey Semenov <phgrey@gmail.com>"]
-description = "Native language and LSP integration support for Harn."
-repository = "https://github.com/phgrey/zed-harn"
-
-[language_servers.harnlang]
-name = "Harn LSP"
-languages = ["Harn"]
+description = "Harn language syntax and grammar support for Zed."
+repository = "https://github.com/phgrey/zed-harnlang"
 
 [grammars.harn]
 repository = "https://github.com/burin-labs/harn"
