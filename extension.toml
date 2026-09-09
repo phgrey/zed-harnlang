@@ -1,7 +1,16 @@
 id = "harnlang"
-name = "Harm Language"
+name = "Harn Language"
 version = "0.1.0"
 schema_version = 1
-authors = ["Your Name <you@example.com>"]
-description = "Native language and LSP integration support for Harm."
-repository = "https://github.com"
+authors = ["Sergey Semenov <phgrey@gmail.com>"]
+description = "Native language and LSP integration support for Harn."
+repository = "https://github.com/phgrey/zed-harn"
+
+[language_servers.harnlang]
+name = "Harn LSP"
+languages = ["Harn"]
+
+[grammars.harn]
+repository = "https://github.com/burin-labs/harn"
+path = "tree-sitter-harn"
+commit = "main"

@@ -1,8 +1,8 @@
 use zed_extension_api::{self as zed, LanguageServerId, Result};
 
-struct HarmExtension;
+struct HarnExtension;
 
-impl zed::Extension for HarmExtension {
+impl zed::Extension for HarnExtension {
     fn new() -> Self {
         Self
     }
@@ -10,14 +10,17 @@ impl zed::Extension for HarmExtension {
     fn language_server_command(
         &mut self,
         _language_server_id: &LanguageServerId,
-        _worktree: &zed::Worktree,
+        worktree: &zed::Worktree,
     ) -> Result<zed::Command> {
+        let path = worktree
+            .which("harn-lsp")
+            .ok_or_else(|| "Binary not found".to_string())?;
         Ok(zed::Command {
-            command: "harn-lsp".to_string(),
+            command: path,
             args: vec![],
-            env: vec![],
+            env: worktree.shell_env(),
         })
     }
 }
 
-zed::register_extension!(HarmExtension);
+zed::register_extension!(HarnExtension);
