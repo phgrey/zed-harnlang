@@ -14,15 +14,13 @@ rustup target add wasm32-wasip2
 ```
 
 ## Load in Zed
-
+0. install harn itself - https://harnlang.com/getting-started.html#install-harn
 1. Open Zed
 2. Command palette → `zed: extensions`
-3. Click **Install Dev Extension**
-4. Select this directory
+3. Search for `Harn`, click **install**
 
-## Publishing Notes
+## language server extension 
+https://github.com/phgrey/zed-harnlang-lsp
 
-- The extension defines the `harnlang` language server in `extension.toml` and links it to the `Harn` language.
-- The language config in `languages/harn/config.toml` declares the `harn` grammar and the `.harn` / `.harn` suffixes.
-- Replace the placeholder `tree-sitter-harn` repository and `rev` in `extension.toml` with your actual grammar repository and commit SHA before publishing.
-- Ensure the global `harn-lsp` binary is available on the user's `PATH`.
+## LICENSE
+MIT License. See [LICENSE](LICENSE) for details.
