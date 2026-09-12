@@ -10,4 +10,5 @@ repository = "https://github.com/phgrey/zed-harnlang"
 crate-type = ["cdylib"]
 
 [dependencies]
+harn-builtin-meta = "0.10.134"
 zed_extension_api = "0.3.0"

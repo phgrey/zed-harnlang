@@ -21,6 +21,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "harn-builtin-meta"
+version = "0.10.134"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f31649edc6d623b3656baed26d5bb574f934df9dda51982ea0c24865af9d9a41"
+
+[[package]]
 name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -331,6 +337,7 @@ dependencies = [
 name = "zed-harnlang"
 version = "0.0.1"
 dependencies = [
+ "harn-builtin-meta",
  "zed_extension_api",
 ]
 
