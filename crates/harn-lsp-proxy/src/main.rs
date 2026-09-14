@@ -2,8 +2,10 @@ use harn_lsp_proxy::{
     build_ra_initialize_request, check_definition_request, read_message,
     resolve_harn_lsp_command, resolve_rust_analyzer_command, rewrite_initialize_response,
     rewrite_symbol_response, write_message, DefinitionIntercept, DocumentStore, RpcMessage,
+    build_ra_symbol_query,
 };
 use log::info;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::env;
 use std::process::Stdio;
@@ -44,10 +46,30 @@ async fn main() {
     let tx_to_zed_clone1 = tx_to_zed.clone();
     let tx_to_zed_clone2 = tx_to_zed.clone();
 
-    // Map to keep track of pending RA queries to ensure exact name matching
-    let pending_queries: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
-    let pending_queries_clone1 = pending_queries.clone();
-    let pending_queries_clone2 = pending_queries.clone();
+    let (tx_to_ra, mut rx_to_ra) = mpsc::channel::<String>(32);
+    let tx_to_ra_clone1 = tx_to_ra.clone();
+
+    let (tx_to_harn, mut rx_to_harn) = mpsc::channel::<String>(32);
+
+    tokio::spawn(async move {
+        while let Some(msg) = rx_to_ra.recv().await {
+            let _ = write_message(&mut ra_stdin, &msg).await;
+        }
+    });
+
+    tokio::spawn(async move {
+        while let Some(msg) = rx_to_harn.recv().await {
+            let _ = write_message(&mut harn_stdin, &msg).await;
+        }
+    });
+
+    let pending_harn_defs: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
+    let pending_harn_defs_clone1 = pending_harn_defs.clone();
+    let pending_harn_defs_clone2 = pending_harn_defs.clone();
+
+    let pending_ra_defs: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
+    let pending_ra_defs_clone1 = pending_ra_defs.clone();
+    let pending_ra_defs_clone2 = pending_ra_defs.clone();
 
     let mut documents = DocumentStore::new();
 
@@ -55,6 +77,36 @@ async fn main() {
     tokio::spawn(async move {
         let mut reader = BufReader::new(harn_stdout);
         while let Some(msg) = read_message(&mut reader).await {
+            if let Ok(rpc) = serde_json::from_str::<RpcMessage>(&msg) {
+                // Check if this is a response to a tracked definition request
+                if let Some(id) = rpc.id.as_ref() {
+                    let id_str = id.to_string();
+                    let queried_word = {
+                        let mut map = pending_harn_defs_clone1.lock().unwrap();
+                        map.remove(&id_str)
+                    };
+
+                    if let Some(word) = queried_word {
+                        let is_empty = match rpc.result.as_ref() {
+                            None | Some(Value::Null) => true,
+                            Some(Value::Array(arr)) if arr.is_empty() => true,
+                            _ => false,
+                        };
+
+                        if is_empty {
+                            // Harn-lsp didn't find it. Fallback to RA!
+                            {
+                                let mut map = pending_ra_defs_clone1.lock().unwrap();
+                                map.insert(id_str, word.clone());
+                            }
+                            let query_msg = build_ra_symbol_query(id, &word);
+                            let _ = tx_to_ra_clone1.send(query_msg).await;
+                            continue; // Do NOT send the empty response to Zed yet
+                        }
+                    }
+                }
+            }
+            
             let out_msg = rewrite_initialize_response(&msg);
             let _ = tx_to_zed_clone1.send(out_msg).await;
         }
@@ -68,7 +120,7 @@ async fn main() {
                 if let Some(id) = rpc.id.as_ref() {
                     let id_str = id.to_string();
                     let queried_word = {
-                        let mut map = pending_queries_clone1.lock().unwrap();
+                        let mut map = pending_ra_defs_clone2.lock().unwrap();
                         map.remove(&id_str)
                     };
 
@@ -99,7 +151,7 @@ async fn main() {
             // 1. Initialize both servers
             if method == "initialize" {
                 if let Some(ra_msg) = build_ra_initialize_request(&msg, extension_dir) {
-                    let _ = write_message(&mut ra_stdin, &ra_msg).await;
+                    let _ = tx_to_ra.send(ra_msg).await;
                 } else {
                     info!(
                         "Failed to resolve absolute path for Harn source directory: {:?}",
@@ -107,12 +159,12 @@ async fn main() {
                     );
                 }
 
-                let _ = write_message(&mut harn_stdin, &msg).await;
+                let _ = tx_to_harn.send(msg).await;
                 continue;
             }
 
             if method == "initialized" {
-                let _ = write_message(&mut ra_stdin, &msg).await;
+                let _ = tx_to_ra.send(msg.clone()).await;
             }
 
             // 2. Track open documents
@@ -126,25 +178,18 @@ async fn main() {
             }
 
             // 4. Intercept Definition
-            if let DefinitionIntercept::Intercepted {
-                id,
-                word,
-                ra_query_message,
-            } = check_definition_request(&rpc, &documents)
-            {
+            if let DefinitionIntercept::Tracked { id, word } = check_definition_request(&rpc, &documents) {
                 {
-                    let mut map = pending_queries_clone2.lock().unwrap();
+                    let mut map = pending_harn_defs_clone2.lock().unwrap();
                     map.insert(id.to_string(), word);
                 }
-                let _ = write_message(&mut ra_stdin, &ra_query_message).await;
-                continue; // Skip forwarding to harn-lsp
             }
 
-            // Pass everything else to harn-lsp (including didOpen/didChange)
-            let _ = write_message(&mut harn_stdin, &msg).await;
+            // Pass everything else to harn-lsp (including didOpen/didChange and tracked definitions)
+            let _ = tx_to_harn.send(msg.clone()).await;
 
             if method == "exit" {
-                let _ = write_message(&mut ra_stdin, &msg).await;
+                let _ = tx_to_ra.send(msg).await;
                 break;
             }
         }

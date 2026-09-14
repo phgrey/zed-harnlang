@@ -46,10 +46,9 @@ pub fn build_ra_initialize_request(original_msg: &str, extension_dir: &Path) -> 
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DefinitionIntercept {
-    Intercepted {
+    Tracked {
         id: Value,
         word: String,
-        ra_query_message: String,
     },
     Forward,
 }
@@ -72,24 +71,8 @@ pub fn check_definition_request(
         ) {
             if let Some(text) = documents.get(uri) {
                 if let Some(word) = get_word_at_position(text, line as usize, col as usize) {
-                    if word.starts_with("Harness") {
-                        if let Some(id) = rpc.id.clone() {
-                            let query_msg = json!({
-                                "jsonrpc": "2.0",
-                                "id": id,
-                                "method": "workspace/symbol",
-                                "params": {
-                                    "query": word
-                                }
-                            });
-                            if let Ok(ra_msg) = serde_json::to_string(&query_msg) {
-                                return DefinitionIntercept::Intercepted {
-                                    id,
-                                    word,
-                                    ra_query_message: ra_msg,
-                                };
-                            }
-                        }
+                    if let Some(id) = rpc.id.clone() {
+                        return DefinitionIntercept::Tracked { id, word };
                     }
                 }
             }
@@ -97,6 +80,18 @@ pub fn check_definition_request(
     }
 
     DefinitionIntercept::Forward
+}
+
+pub fn build_ra_symbol_query(id: &Value, word: &str) -> String {
+    let query_msg = json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "method": "workspace/symbol",
+        "params": {
+            "query": word
+        }
+    });
+    serde_json::to_string(&query_msg).unwrap_or_default()
 }
 
 pub fn rewrite_symbol_response(rpc: &RpcMessage, word: &str) -> String {
@@ -193,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn test_check_definition_request_intercepted() {
+    fn test_check_definition_request_tracked() {
         let mut docs = DocumentStore::new();
         let uri = "file:///sample.harn";
         docs.insert(uri, "let h = Harness::new();");
@@ -208,40 +203,19 @@ mod tests {
         );
 
         match check_definition_request(&def_req, &docs) {
-            DefinitionIntercept::Intercepted {
-                id,
-                word,
-                ra_query_message,
-            } => {
+            DefinitionIntercept::Tracked { id, word } => {
                 assert_eq!(id, json!(10));
                 assert_eq!(word, "Harness");
-                let parsed: Value = serde_json::from_str(&ra_query_message).unwrap();
-                assert_eq!(parsed["method"], "workspace/symbol");
-                assert_eq!(parsed["params"]["query"], "Harness");
             }
-            DefinitionIntercept::Forward => panic!("Expected intercepted definition request"),
+            DefinitionIntercept::Forward => panic!("Expected tracked definition request"),
         }
     }
 
     #[test]
-    fn test_check_definition_request_forward() {
+    fn test_check_definition_request_forward_other_methods() {
         let mut docs = DocumentStore::new();
         let uri = "file:///sample.harn";
         docs.insert(uri, "let h = NonHarness::new();");
-
-        let def_req = RpcMessage::request(
-            json!(11),
-            "textDocument/definition",
-            Some(json!({
-                "textDocument": { "uri": uri },
-                "position": { "line": 0, "character": 9 }
-            })),
-        );
-
-        assert_eq!(
-            check_definition_request(&def_req, &docs),
-            DefinitionIntercept::Forward
-        );
 
         // Different method
         let hover_req = RpcMessage::request(

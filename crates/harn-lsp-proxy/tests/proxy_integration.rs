@@ -74,16 +74,13 @@ fn test_proxy_document_sync_and_definition_cycle() {
     );
 
     let action = check_definition_request(&def_req, &docs);
-    let (id, word, ra_msg) = match action {
-        DefinitionIntercept::Intercepted { id, word, ra_query_message } => (id, word, ra_query_message),
-        DefinitionIntercept::Forward => panic!("Expected definition to be intercepted"),
+    let (id, word) = match action {
+        DefinitionIntercept::Tracked { id, word } => (id, word),
+        DefinitionIntercept::Forward => panic!("Expected definition to be tracked"),
     };
 
     assert_eq!(id, json!(100));
     assert_eq!(word, "Harness");
-    let query_val: serde_json::Value = serde_json::from_str(&ra_msg).unwrap();
-    assert_eq!(query_val["method"], "workspace/symbol");
-    assert_eq!(query_val["params"]["query"], "Harness");
 
     // 3. Rust-analyzer returns symbol search results
     let ra_resp = RpcMessage::response(
@@ -121,7 +118,7 @@ fn test_proxy_document_sync_and_definition_cycle() {
     assert!(docs.handle_did_change(Some(&did_change_params)));
     assert_eq!(docs.get(uri).unwrap(), "fn main(h: Custom) {}");
 
-    // 5. Definition on non-Harness should forward
+    // 5. Definition on non-Harness SHOULD ALSO be tracked now!
     let non_harness_def = RpcMessage::request(
         json!(101),
         "textDocument/definition",
@@ -130,8 +127,12 @@ fn test_proxy_document_sync_and_definition_cycle() {
             "position": { "line": 0, "character": 12 }
         })),
     );
-    assert_eq!(
-        check_definition_request(&non_harness_def, &docs),
-        DefinitionIntercept::Forward
-    );
+    let action2 = check_definition_request(&non_harness_def, &docs);
+    match action2 {
+        DefinitionIntercept::Tracked { id, word } => {
+            assert_eq!(id, json!(101));
+            assert_eq!(word, "Custom");
+        },
+        DefinitionIntercept::Forward => panic!("Expected definition to be tracked"),
+    };
 }
