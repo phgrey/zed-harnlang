@@ -2,3 +2,4 @@ target/
 grammars/
 *.wasm
 .DS_store
+.env

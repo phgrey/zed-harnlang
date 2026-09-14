@@ -1,0 +1,421 @@
+/**
+ * Root capability handle threaded into `fn main(harness: Harness)`.
+ *
+ * Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs)
+ */
+pub struct Harness {
+  /** Rust source: [crates/harn-vm/src/stdlib/io.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/io.rs) */
+  stdio: HarnessStdio,
+  /** Rust source: [crates/harn-vm/src/term.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/term.rs) */
+  term: HarnessTerm,
+  /** Rust source: [crates/harn-vm/src/stdlib/clock.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/clock.rs) */
+  clock: HarnessClock,
+  /** Rust source: [crates/harn-vm/src/stdlib/fs.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/fs.rs) */
+  fs: HarnessFs,
+  /** Rust source: [crates/harn-vm/src/stdlib/process.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/process.rs) */
+  env: HarnessEnv,
+  /** Rust source: [crates/harn-vm/src/stdlib/crypto.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/crypto.rs) */
+  random: HarnessRandom,
+  /** Rust source: [crates/harn-vm/src/harness_net.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_net.rs) */
+  net: HarnessNet,
+  /** Rust source: [crates/harn-vm/src/stdlib/process.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/process.rs) */
+  process: HarnessProcess,
+  /** Rust source: [crates/harn-vm/src/stdlib/channels.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/channels.rs) */
+  channels: HarnessChannels,
+  /** Rust source: [crates/harn-vm/src/harness_system.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_system.rs) */
+  system: HarnessSystem,
+  /** Rust source: [crates/harn-vm/src/stdlib/secret_scan.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/secret_scan.rs) */
+  secrets: HarnessSecrets,
+  /** Rust source: [crates/harn-vm/src/llm/](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/llm/) */
+  llm: HarnessLlm,
+  /** Rust source: [crates/harn-vm/src/stdlib/agents.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/agents.rs) */
+  agent: HarnessAgent,
+  /** Rust source: [crates/harn-vm/src/harness_tenant.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_tenant.rs) */
+  tenant: HarnessTenant,
+  /** Rust source: [crates/harn-vm/src/harness_auth.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_auth.rs) */
+  auth: HarnessAuth,
+  /** Rust source: [crates/harn-vm/src/stdlib/observability.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/observability.rs) */
+  obs: HarnessObs,
+  /** Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs) */
+  verdict: HarnessVerdict,
+  /** Rust source: [crates/harn-vm/src/stdlib/tools.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/tools.rs) */
+  tools: HarnessTools,
+  /** Rust source: [crates/harn-parser/src/lib.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-parser/src/lib.rs) */
+  ast: HarnessAst,
+  /** Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs) */
+  code_index: HarnessCodeIndex,
+  /** Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs) */
+  computer: HarnessComputer,
+  /** Rust source: [crates/harn-cli/src/local_embed.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-cli/src/local_embed.rs) */
+  embed: HarnessEmbed,
+  /** Rust source: [crates/harn-vm/src/stdlib/memory.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/memory.rs) */
+  memory: HarnessMemory,
+  /** Rust source: [crates/harn-vm/src/stdlib/sqlite/mod.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/sqlite/mod.rs) */
+  sqlite: HarnessSqlite,
+  /** Rust source: [crates/harn-vm/src/stdlib/postgres/mod.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/postgres/mod.rs) */
+  postgres: HarnessPostgres,
+  /** Rust source: [crates/harn-vm/src/stdlib/files.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/files.rs) */
+  fs_watch: HarnessFsWatch,
+  /** Rust source: [crates/harn-vm/src/stdlib/host.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/host.rs) */
+  host_lease: HarnessHostLease,
+  /** Rust source: [crates/harn-vm/src/stdlib/secret_scan.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/secret_scan.rs) */
+  scanner: HarnessScanner,
+  /** Rust source: [crates/harn-vm/src/stdlib/secret_scan.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/secret_scan.rs) */
+  secret_store: HarnessSecretStore,
+  /** Rust source: [crates/harn-vm/src/term.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/term.rs) */
+  terminal: HarnessTerminalSession,
+  /** Rust source: [crates/harn-rules/src/lib.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-rules/src/lib.rs) */
+  rules: HarnessRules,
+  /** Rust source: [crates/harn-lint/src/lib.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-lint/src/lib.rs) */
+  lint: HarnessLint,
+  /** Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs) */
+  runtime: HarnessRuntime,
+  /** Rust source: [crates/harn-vm/src/stdlib/hitl.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/hitl.rs) */
+  interaction: HarnessInteraction,
+  /** Rust source: [crates/harn-vm/src/stdlib/project_enrich.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/project_enrich.rs) */
+  project: HarnessProject,
+  /** Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs) */
+  dashboard: HarnessDashboard,
+  /** Rust source: [crates/harn-vm/src/workspace_anchor.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/workspace_anchor.rs) */
+  workspace: HarnessWorkspace,
+  /** Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs) */
+  merge_captain: HarnessMergeCaptain,
+  /** Rust source: [crates/harn-vm/src/stdlib/agent_sessions.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/agent_sessions.rs) */
+  session: HarnessSession,
+  /** Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs) */
+  permission: HarnessPermission,
+  /** Rust source: [crates/harn-vm/src/text_diff.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/text_diff.rs) */
+  text: HarnessText,
+  /** Rust source: [crates/harn-lsp/src/lib.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-lsp/src/lib.rs) */
+  lsp: HarnessLsp,
+  /** Rust source: [crates/harn-vm/src/harness_auth.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_auth.rs) */
+  credentials: HarnessCredentials,
+  /** Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs) */
+  pr_monitor: HarnessPrMonitor,
+  /** Rust source: [crates/harn-vm/src/orchestration/workflow.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/orchestration/workflow.rs) */
+  workflow: HarnessWorkflow,
+  /** Rust source: [crates/harn-vm/src/stdlib/testing.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/testing.rs) */
+  testing: HarnessTesting,
+}
+
+/**
+ * `HarnessStdio` capability handle (`harness.stdio`, `Stdio`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/io.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/io.rs)
+ */
+pub struct HarnessStdio {}
+
+/**
+ * `HarnessTerm` capability handle (`harness.term`, `Term`).
+ *
+ * Rust source: [crates/harn-vm/src/term.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/term.rs)
+ */
+pub struct HarnessTerm {}
+
+/**
+ * `HarnessClock` capability handle (`harness.clock`, `Clock`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/clock.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/clock.rs)
+ */
+pub struct HarnessClock {}
+
+/**
+ * `HarnessFs` capability handle (`harness.fs`, `Fs`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/fs.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/fs.rs)
+ */
+pub struct HarnessFs {}
+
+/**
+ * `HarnessEnv` capability handle (`harness.env`, `Env`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/process.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/process.rs)
+ */
+pub struct HarnessEnv {}
+
+/**
+ * `HarnessRandom` capability handle (`harness.random`, `Random`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/crypto.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/crypto.rs)
+ */
+pub struct HarnessRandom {}
+
+/**
+ * `HarnessNet` capability handle (`harness.net`, `Net`).
+ *
+ * Rust source: [crates/harn-vm/src/harness_net.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_net.rs)
+ */
+pub struct HarnessNet {}
+
+/**
+ * `HarnessProcess` capability handle (`harness.process`, `Process`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/process.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/process.rs)
+ */
+pub struct HarnessProcess {}
+
+/**
+ * `HarnessChannels` capability handle (`harness.channels`, `Channels`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/channels.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/channels.rs)
+ */
+pub struct HarnessChannels {}
+
+/**
+ * `HarnessSystem` capability handle (`harness.system`, `System`).
+ *
+ * Rust source: [crates/harn-vm/src/harness_system.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_system.rs)
+ */
+pub struct HarnessSystem {}
+
+/**
+ * `HarnessSecrets` capability handle (`harness.secrets`, `Secrets`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/secret_scan.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/secret_scan.rs)
+ */
+pub struct HarnessSecrets {}
+
+/**
+ * `HarnessLlm` capability handle (`harness.llm`, `Llm`).
+ *
+ * Rust source: [crates/harn-vm/src/llm/](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/llm/)
+ */
+pub struct HarnessLlm {}
+
+/**
+ * `HarnessAgent` capability handle (`harness.agent`, `Agent`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/agents.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/agents.rs)
+ */
+pub struct HarnessAgent {}
+
+/**
+ * `HarnessTenant` capability handle (`harness.tenant`, `Tenant`).
+ *
+ * Rust source: [crates/harn-vm/src/harness_tenant.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_tenant.rs)
+ */
+pub struct HarnessTenant {}
+
+/**
+ * `HarnessAuth` capability handle (`harness.auth`, `Auth`).
+ *
+ * Rust source: [crates/harn-vm/src/harness_auth.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_auth.rs)
+ */
+pub struct HarnessAuth {}
+
+/**
+ * `HarnessObs` capability handle (`harness.obs`, `Observability`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/observability.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/observability.rs)
+ */
+pub struct HarnessObs {}
+
+/**
+ * `HarnessVerdict` capability handle (`harness.verdict`, `Verdict`).
+ *
+ * Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs)
+ */
+pub struct HarnessVerdict {}
+
+/**
+ * `HarnessTools` capability handle (`harness.tools`, `Tools`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/tools.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/tools.rs)
+ */
+pub struct HarnessTools {}
+
+/**
+ * `HarnessAst` capability handle (`harness.ast`, `Ast`).
+ *
+ * Rust source: [crates/harn-parser/src/lib.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-parser/src/lib.rs)
+ */
+pub struct HarnessAst {}
+
+/**
+ * `HarnessCodeIndex` capability handle (`harness.code_index`, `CodeIndex`).
+ *
+ * Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs)
+ */
+pub struct HarnessCodeIndex {}
+
+/**
+ * `HarnessComputer` capability handle (`harness.computer`, `Computer`).
+ *
+ * Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs)
+ */
+pub struct HarnessComputer {}
+
+/**
+ * `HarnessEmbed` capability handle (`harness.embed`, `Embed`).
+ *
+ * Rust source: [crates/harn-cli/src/local_embed.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-cli/src/local_embed.rs)
+ */
+pub struct HarnessEmbed {}
+
+/**
+ * `HarnessMemory` capability handle (`harness.memory`, `Memory`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/memory.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/memory.rs)
+ */
+pub struct HarnessMemory {}
+
+/**
+ * `HarnessSqlite` capability handle (`harness.sqlite`, `Sqlite`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/sqlite/mod.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/sqlite/mod.rs)
+ */
+pub struct HarnessSqlite {}
+
+/**
+ * `HarnessPostgres` capability handle (`harness.postgres`, `Postgres`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/postgres/mod.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/postgres/mod.rs)
+ */
+pub struct HarnessPostgres {}
+
+/**
+ * `HarnessFsWatch` capability handle (`harness.fs_watch`, `FsWatch`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/files.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/files.rs)
+ */
+pub struct HarnessFsWatch {}
+
+/**
+ * `HarnessHostLease` capability handle (`harness.host_lease`, `HostLease`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/host.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/host.rs)
+ */
+pub struct HarnessHostLease {}
+
+/**
+ * `HarnessScanner` capability handle (`harness.scanner`, `Scanner`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/secret_scan.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/secret_scan.rs)
+ */
+pub struct HarnessScanner {}
+
+/**
+ * `HarnessSecretStore` capability handle (`harness.secret_store`, `SecretStore`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/secret_scan.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/secret_scan.rs)
+ */
+pub struct HarnessSecretStore {}
+
+/**
+ * `HarnessTerminalSession` capability handle (`harness.terminal`, `TerminalSession`).
+ *
+ * Rust source: [crates/harn-vm/src/term.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/term.rs)
+ */
+pub struct HarnessTerminalSession {}
+
+/**
+ * `HarnessRules` capability handle (`harness.rules`, `Rules`).
+ *
+ * Rust source: [crates/harn-rules/src/lib.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-rules/src/lib.rs)
+ */
+pub struct HarnessRules {}
+
+/**
+ * `HarnessLint` capability handle (`harness.lint`, `Lint`).
+ *
+ * Rust source: [crates/harn-lint/src/lib.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-lint/src/lib.rs)
+ */
+pub struct HarnessLint {}
+
+/**
+ * `HarnessRuntime` capability handle (`harness.runtime`, `Runtime`).
+ *
+ * Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs)
+ */
+pub struct HarnessRuntime {}
+
+/**
+ * `HarnessInteraction` capability handle (`harness.interaction`, `Interaction`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/hitl.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/hitl.rs)
+ */
+pub struct HarnessInteraction {}
+
+/**
+ * `HarnessProject` capability handle (`harness.project`, `Project`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/project_enrich.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/project_enrich.rs)
+ */
+pub struct HarnessProject {}
+
+/**
+ * `HarnessDashboard` capability handle (`harness.dashboard`, `Dashboard`).
+ *
+ * Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs)
+ */
+pub struct HarnessDashboard {}
+
+/**
+ * `HarnessWorkspace` capability handle (`harness.workspace`, `Workspace`).
+ *
+ * Rust source: [crates/harn-vm/src/workspace_anchor.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/workspace_anchor.rs)
+ */
+pub struct HarnessWorkspace {}
+
+/**
+ * `HarnessMergeCaptain` capability handle (`harness.merge_captain`, `MergeCaptain`).
+ *
+ * Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs)
+ */
+pub struct HarnessMergeCaptain {}
+
+/**
+ * `HarnessSession` capability handle (`harness.session`, `Session`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/agent_sessions.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/agent_sessions.rs)
+ */
+pub struct HarnessSession {}
+
+/**
+ * `HarnessPermission` capability handle (`harness.permission`, `Permission`).
+ *
+ * Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs)
+ */
+pub struct HarnessPermission {}
+
+/**
+ * `HarnessText` capability handle (`harness.text`, `Text`).
+ *
+ * Rust source: [crates/harn-vm/src/text_diff.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/text_diff.rs)
+ */
+pub struct HarnessText {}
+
+/**
+ * `HarnessLsp` capability handle (`harness.lsp`, `Lsp`).
+ *
+ * Rust source: [crates/harn-lsp/src/lib.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-lsp/src/lib.rs)
+ */
+pub struct HarnessLsp {}
+
+/**
+ * `HarnessCredentials` capability handle (`harness.credentials`, `Credentials`).
+ *
+ * Rust source: [crates/harn-vm/src/harness_auth.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness_auth.rs)
+ */
+pub struct HarnessCredentials {}
+
+/**
+ * `HarnessPrMonitor` capability handle (`harness.pr_monitor`, `PrMonitor`).
+ *
+ * Rust source: [crates/harn-vm/src/harness.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/harness.rs)
+ */
+pub struct HarnessPrMonitor {}
+
+/**
+ * `HarnessWorkflow` capability handle (`harness.workflow`, `Workflow`).
+ *
+ * Rust source: [crates/harn-vm/src/orchestration/workflow.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/orchestration/workflow.rs)
+ */
+pub struct HarnessWorkflow {}
+
+/**
+ * `HarnessTesting` capability handle (`harness.testing`, `Testing`).
+ *
+ * Rust source: [crates/harn-vm/src/stdlib/testing.rs](file:///Users/ssemenov/work/zedpack/harn/crates/harn-vm/src/stdlib/testing.rs)
+ */
+pub struct HarnessTesting {}
