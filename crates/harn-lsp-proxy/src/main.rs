@@ -1,8 +1,8 @@
 use harn_lsp_proxy::{
-    build_ra_initialize_request, check_definition_request, read_message,
-    resolve_harn_lsp_command, resolve_rust_analyzer_command, rewrite_initialize_response,
-    rewrite_symbol_response, write_message, DefinitionIntercept, DocumentStore, RpcMessage,
-    build_ra_symbol_query,
+    DefinitionIntercept, DocumentStore, RpcMessage, build_ra_initialize_request,
+    build_ra_symbol_query, check_definition_request, read_message, resolve_harn_lsp_command,
+    resolve_rust_analyzer_command, rewrite_initialize_response, rewrite_symbol_response,
+    write_message,
 };
 use log::info;
 use serde_json::Value;
@@ -63,7 +63,8 @@ async fn main() {
         }
     });
 
-    let pending_harn_defs: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
+    let pending_harn_defs: Arc<Mutex<HashMap<String, String>>> =
+        Arc::new(Mutex::new(HashMap::new()));
     let pending_harn_defs_clone1 = pending_harn_defs.clone();
     let pending_harn_defs_clone2 = pending_harn_defs.clone();
 
@@ -106,7 +107,7 @@ async fn main() {
                     }
                 }
             }
-            
+
             let out_msg = rewrite_initialize_response(&msg);
             let _ = tx_to_zed_clone1.send(out_msg).await;
         }
@@ -178,7 +179,9 @@ async fn main() {
             }
 
             // 4. Intercept Definition
-            if let DefinitionIntercept::Tracked { id, word } = check_definition_request(&rpc, &documents) {
+            if let DefinitionIntercept::Tracked { id, word } =
+                check_definition_request(&rpc, &documents)
+            {
                 {
                     let mut map = pending_harn_defs_clone2.lock().unwrap();
                     map.insert(id.to_string(), word);

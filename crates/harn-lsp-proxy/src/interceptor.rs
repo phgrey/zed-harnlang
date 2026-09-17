@@ -46,10 +46,7 @@ pub fn build_ra_initialize_request(original_msg: &str, extension_dir: &Path) -> 
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DefinitionIntercept {
-    Tracked {
-        id: Value,
-        word: String,
-    },
+    Tracked { id: Value, word: String },
     Forward,
 }
 
