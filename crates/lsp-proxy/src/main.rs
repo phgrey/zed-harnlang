@@ -1,14 +1,18 @@
+use log::info;
 use lsp_proxy::rpc::RpcMessage;
 use lsp_proxy::server::{Server, tx_for_std};
 use lsp_proxy::text::word_at_cursor;
 use lsp_proxy::transport::read_message;
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::io::BufReader;
 
 #[tokio::main]
 async fn main() {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    info!("lsp-proxy initialized");
+
     let ha_lsp = Server::lsp("harn-lsp");
     let ra_lsp = Server::lsp("rust-analyzer");
 
@@ -41,22 +45,26 @@ async fn main() {
                     pend.get(id).and_then(word_at_cursor)
                 };
 
-                if let Some(word) = word {
-                    {
-                        let mut map = pending_ra_clone.lock().unwrap();
-                        map.insert(id.clone(), word.clone());
+                match word {
+                    Some(word) => {
+                        info!(
+                            "Harn empty result for req {id}, falling back to RA for [{word}] - {msg:?}"
+                        );
+                        {
+                            let mut map = pending_ra_clone.lock().unwrap();
+                            map.insert(id.clone(), word.clone());
+                        }
+                        let _ = tx_to_ra_for_harn
+                            .send(RpcMessage::symbol_request(msg.id.unwrap_or_default(), word))
+                            .await;
+                        continue; // Do NOT send empty response to Zed yet
                     }
-                    let _ = tx_to_ra_for_harn
-                        .send(RpcMessage::request(
-                            msg.id.unwrap_or_default(),
-                            "workspace/symbol",
-                            Some(Value::Object(Map::from_iter([(
-                                "query".to_string(),
-                                Value::String(word),
-                            )]))),
-                        ))
-                        .await;
-                    continue; // Do NOT send empty response to Zed yet
+                    None => {
+                        let has_pending = pending_harn_clone.lock().unwrap().contains_key(id);
+                        info!(
+                            "Harn empty result for req {id} (saved params present: {has_pending}), but could not extract word at cursor"
+                        );
+                    }
                 }
             }
 
@@ -85,6 +93,7 @@ async fn main() {
 
                 if let Some(word) = queried_word {
                     let out_msg = msg.into_symbol_response(&word);
+                    info!("got from ra for [{word}] {out_msg:?}");
                     let _ = tx_to_zed_for_ra.send(out_msg).await;
                 }
             }

@@ -1,7 +1,7 @@
 use crate::config::extension_path;
 use crate::text::rank_symbol_locations;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct RpcMessage {
@@ -36,6 +36,20 @@ impl RpcMessage {
             id: Some(id),
             method: Some(method.into()),
             params,
+            result: None,
+            error: None,
+        }
+    }
+
+    pub fn symbol_request(id: Value, word: impl Into<String>) -> Self {
+        Self {
+            jsonrpc: "2.0".to_string(),
+            id: Some(id),
+            method: Some("workspace/symbol".into()),
+            params: Some(Value::Object(Map::from_iter([(
+                "query".to_string(),
+                Value::String(word.into()),
+            )]))),
             result: None,
             error: None,
         }
