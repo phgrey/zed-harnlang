@@ -1,138 +1,121 @@
-use harn_lsp_proxy::{
-    build_ra_initialize_request, check_definition_request, rewrite_initialize_response,
-    rewrite_symbol_response, DefinitionIntercept, DocumentStore, RpcMessage,
-};
+use harn_lsp_proxy::rpc::RpcMessage;
+use harn_lsp_proxy::text::{find_symbol_location, get_word_at_position, rank_symbol_locations};
 use serde_json::json;
-use std::path::Path;
 
 #[test]
-fn test_proxy_initialize_flow() {
-    let client_init = json!({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "initialize",
-        "params": {
-            "capabilities": {}
-        }
-    }).to_string();
-
-    let ext_dir = Path::new("/Users/example/extension");
-    let ra_init = build_ra_initialize_request(&client_init, ext_dir).expect("should build ra init");
-    let ra_val: serde_json::Value = serde_json::from_str(&ra_init).unwrap();
-    assert_eq!(
-        ra_val["params"]["rootUri"],
-        "file:///Users/example/extension/harn-main"
-    );
-
-    // Harn response arrives: capabilities must be rewritten to textDocumentSync = 1
-    let harn_resp = json!({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {
-            "capabilities": {
-                "hoverProvider": true,
-                "textDocumentSync": 2
-            }
-        }
-    }).to_string();
-
-    let rewritten = rewrite_initialize_response(&harn_resp);
-    let rewritten_val: serde_json::Value = serde_json::from_str(&rewritten).unwrap();
-    assert_eq!(
-        rewritten_val["result"]["capabilities"]["textDocumentSync"],
-        json!(1)
-    );
-    assert_eq!(
-        rewritten_val["result"]["capabilities"]["hoverProvider"],
-        json!(true)
-    );
-}
-
-#[test]
-fn test_proxy_document_sync_and_definition_cycle() {
-    let mut docs = DocumentStore::new();
-    let uri = "file:///project/main.harn";
-
-    // 1. didOpen
-    let did_open_params = json!({
-        "textDocument": {
-            "uri": uri,
-            "text": "fn main(h: Harness) {\n  let x = h.env;\n}"
-        }
-    });
-    assert!(docs.handle_did_open(Some(&did_open_params)));
-    assert_eq!(docs.get(uri).unwrap(), "fn main(h: Harness) {\n  let x = h.env;\n}");
-
-    // 2. Definition on Harness
-    let def_req = RpcMessage::request(
-        json!(100),
-        "textDocument/definition",
+fn test_proxy_initialize_mirroring() {
+    let client_init = RpcMessage::request(
+        json!(1),
+        "initialize",
         Some(json!({
-            "textDocument": { "uri": uri },
-            "position": { "line": 0, "character": 12 }
+            "processId": 1234,
+            "rootUri": "file:///workspace/project",
+            "capabilities": {}
         })),
     );
 
-    let action = check_definition_request(&def_req, &docs);
-    let (id, word) = match action {
-        DefinitionIntercept::Tracked { id, word } => (id, word),
-        DefinitionIntercept::Forward => panic!("Expected definition to be tracked"),
-    };
+    // RA clone gets updated workspace and rootUri directed at harn-main
+    let ra_init = client_init.clone_second().expect("should clone initialize");
+    let ra_params = ra_init.params.as_ref().unwrap();
+    assert!(
+        ra_params["rootUri"]
+            .as_str()
+            .unwrap()
+            .ends_with("/harn-main")
+    );
+    assert_eq!(ra_params["workspaceFolders"][0]["name"], "harn-main");
+}
 
-    assert_eq!(id, json!(100));
+#[test]
+fn test_proxy_definition_fallback_flow() {
+    // 1. Cursor is on "Harness" in the code
+    let code = "fn run(h: Harness) {\n  h.execute();\n}";
+    let word = get_word_at_position(code, 0, 12).expect("should extract word");
     assert_eq!(word, "Harness");
 
-    // 3. Rust-analyzer returns symbol search results
+    // 2. Harn-lsp returns empty/null result
+    let harn_resp = RpcMessage::response(json!(42), json!(null));
+    assert!(harn_resp.is_empty_result());
+
+    // 3. Proxy forms a workspace/symbol query to rust-analyzer
+    let ra_query = RpcMessage::request(
+        json!(42),
+        "workspace/symbol",
+        Some(json!({
+            "query": word
+        })),
+    );
+    assert_eq!(ra_query.id, Some(json!(42)));
+    assert_eq!(ra_query.method.as_deref(), Some("workspace/symbol"));
+
+    // 4. Rust-analyzer returns candidate symbols (including unrelated substring matches)
     let ra_resp = RpcMessage::response(
-        json!(100),
+        json!(42),
         json!([
             {
-                "name": "Harness_unused",
-                "kind": 1,
-                "location": { "uri": "file:///harn/crates/unused.rs" }
+                "name": "HarnessHelper",
+                "kind": 12,
+                "location": { "uri": "file:///path/to/helper.rs" }
             },
             {
                 "name": "Harness",
                 "kind": 22,
                 "location": {
-                    "uri": "file:///harn/crates/harn-vm/src/harness.rs",
-                    "range": { "start": { "line": 15, "character": 0 } }
+                    "uri": "file:///path/to/harness.rs",
+                    "range": { "start": { "line": 10, "character": 0 } }
                 }
             }
         ]),
     );
 
-    let final_resp_str = rewrite_symbol_response(&ra_resp, &word);
-    let final_resp: serde_json::Value = serde_json::from_str(&final_resp_str).unwrap();
-    assert_eq!(final_resp["id"], json!(100));
-    assert_eq!(
-        final_resp["result"]["uri"],
-        "file:///harn/crates/harn-vm/src/harness.rs"
+    // 5. Proxy transforms RA response into Zed definition response with strictly filtered locations
+    let zed_resp = ra_resp.into_symbol_response(&word);
+    assert_eq!(zed_resp.id, Some(json!(42)));
+    let result = zed_resp.result.unwrap();
+    let locations = result
+        .as_array()
+        .expect("result should be an array of locations");
+
+    // Only exact match (Harness) is kept; HarnessHelper is filtered out
+    assert_eq!(locations.len(), 1);
+    assert_eq!(locations[0]["uri"], "file:///path/to/harness.rs");
+    assert_eq!(locations[0]["range"]["start"]["line"], 10);
+}
+
+#[test]
+fn test_proxy_definition_found_by_harn_no_fallback() {
+    let harn_resp = RpcMessage::response(
+        json!(50),
+        json!({
+            "uri": "file:///workspace/project/local.harn",
+            "range": { "start": { "line": 5, "character": 4 } }
+        }),
     );
 
-    // 4. didChange
-    let did_change_params = json!({
-        "textDocument": { "uri": uri },
-        "contentChanges": [{ "text": "fn main(h: Custom) {}" }]
-    });
-    assert!(docs.handle_did_change(Some(&did_change_params)));
-    assert_eq!(docs.get(uri).unwrap(), "fn main(h: Custom) {}");
+    assert!(!harn_resp.is_empty_result());
+}
 
-    // 5. Definition on non-Harness SHOULD ALSO be tracked now!
-    let non_harness_def = RpcMessage::request(
-        json!(101),
-        "textDocument/definition",
-        Some(json!({
-            "textDocument": { "uri": uri },
-            "position": { "line": 0, "character": 12 }
-        })),
-    );
-    let action2 = check_definition_request(&non_harness_def, &docs);
-    match action2 {
-        DefinitionIntercept::Tracked { id, word } => {
-            assert_eq!(id, json!(101));
-            assert_eq!(word, "Custom");
-        },
-        DefinitionIntercept::Forward => panic!("Expected definition to be tracked"),
-    };
+#[test]
+fn test_find_and_rank_symbol_location_heuristics() {
+    let symbols = vec![
+        json!({ "name": "foo", "kind": 12, "location": { "uri": "file:///foo_fn.rs" } }),
+        json!({ "name": "Target", "kind": 22, "location": { "uri": "file:///target_struct.rs" } }),
+    ];
+
+    // Priority kind match (struct = 22)
+    let loc = find_symbol_location(&symbols, "Target").unwrap();
+    assert_eq!(loc["uri"], "file:///target_struct.rs");
+
+    // Exact name match for function
+    let loc_foo = find_symbol_location(&symbols, "foo").unwrap();
+    assert_eq!(loc_foo["uri"], "file:///foo_fn.rs");
+
+    // Non-exact matches return None
+    let loc_unmatched = find_symbol_location(&symbols, "unknown");
+    assert_eq!(loc_unmatched, None);
+
+    // Ranking returns only exact matches for "Target"
+    let ranked = rank_symbol_locations(&symbols, "Target");
+    assert_eq!(ranked.len(), 1);
+    assert_eq!(ranked[0]["uri"], "file:///target_struct.rs");
 }

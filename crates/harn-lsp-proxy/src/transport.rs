@@ -1,6 +1,8 @@
+use super::rpc::RpcMessage;
+use std::str;
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 
-pub async fn read_message<R: AsyncRead + Unpin>(reader: &mut BufReader<R>) -> Option<String> {
+pub async fn read_message<R: AsyncRead + Unpin>(reader: &mut BufReader<R>) -> Option<RpcMessage> {
     let mut length = 0;
     loop {
         let mut line = String::new();
@@ -28,16 +30,20 @@ pub async fn read_message<R: AsyncRead + Unpin>(reader: &mut BufReader<R>) -> Op
     if reader.read_exact(&mut buf).await.is_err() {
         return None;
     }
-    String::from_utf8(buf).ok()
+    serde_json::from_str::<RpcMessage>(str::from_utf8(&buf).ok()?).ok()
 }
 
 pub fn format_message(msg: &str) -> String {
     format!("Content-Length: {}\r\n\r\n{}", msg.len(), msg)
 }
 
-pub async fn write_message<W: AsyncWrite + Unpin>(writer: &mut W, msg: &str) -> std::io::Result<()> {
-    let payload = format_message(msg);
-    writer.write_all(payload.as_bytes()).await?;
+pub async fn write_message<W: AsyncWrite + Unpin>(
+    writer: &mut W,
+    msg: &RpcMessage,
+) -> std::io::Result<()> {
+    let json_str = serde_json::to_string(msg)?;
+    let formatted = format_message(&json_str);
+    writer.write_all(formatted.as_bytes()).await?;
     writer.flush().await?;
     Ok(())
 }
@@ -45,6 +51,7 @@ pub async fn write_message<W: AsyncWrite + Unpin>(writer: &mut W, msg: &str) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
     use std::io::Cursor;
 
     #[tokio::test]
@@ -60,8 +67,8 @@ mod tests {
     #[tokio::test]
     async fn test_write_and_read_message() {
         let mut buffer = Vec::new();
-        let original_msg = r#"{"jsonrpc":"2.0","method":"ping"}"#;
-        write_message(&mut buffer, original_msg).await.unwrap();
+        let original_msg = RpcMessage::request(json!("req-id"), "ping", None);
+        write_message(&mut buffer, &original_msg).await.unwrap();
 
         let mut reader = BufReader::new(Cursor::new(buffer));
         let read = read_message(&mut reader).await.unwrap();
@@ -70,33 +77,36 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_multiple_messages() {
-        let msg1 = r#"{"msg":1}"#;
-        let msg2 = r#"{"msg":2}"#;
+        let msg1 = RpcMessage::request(json!("req-id-1"), "ping", None);
+        let msg2 = RpcMessage::request(json!("req-id-2"), "pong", None);
+        let s1 = serde_json::to_string(&msg1).unwrap();
+        let s2 = serde_json::to_string(&msg2).unwrap();
         let raw = format!(
             "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
-            msg1.len(),
-            msg1,
-            msg2.len(),
-            msg2
+            s1.len(),
+            s1,
+            s2.len(),
+            s2
         );
 
         let mut reader = BufReader::new(Cursor::new(raw.into_bytes()));
-        assert_eq!(read_message(&mut reader).await.as_deref(), Some(msg1));
-        assert_eq!(read_message(&mut reader).await.as_deref(), Some(msg2));
+        assert_eq!(read_message(&mut reader).await, Some(msg1));
+        assert_eq!(read_message(&mut reader).await, Some(msg2));
         assert_eq!(read_message(&mut reader).await, None);
     }
 
     #[tokio::test]
     async fn test_read_message_with_extra_headers() {
-        let msg = r#"{"hello":"world"}"#;
+        let msg = RpcMessage::request(json!("req-id"), "ping", None);
+        let s = serde_json::to_string(&msg).unwrap();
         let raw = format!(
             "Content-Type: application/vscode-jsonrpc; charset=utf-8\r\nContent-Length: {}\r\n\r\n{}",
-            msg.len(),
-            msg
+            s.len(),
+            s
         );
 
         let mut reader = BufReader::new(Cursor::new(raw.into_bytes()));
-        assert_eq!(read_message(&mut reader).await.as_deref(), Some(msg));
+        assert_eq!(read_message(&mut reader).await, Some(msg));
     }
 
     #[tokio::test]
@@ -111,7 +121,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_message_truncated_payload() {
-        // Declares 20 bytes, but stream ends after 5 bytes
         let raw = "Content-Length: 20\r\n\r\nshort";
         let mut reader = BufReader::new(Cursor::new(raw.as_bytes()));
         assert_eq!(read_message(&mut reader).await, None);
